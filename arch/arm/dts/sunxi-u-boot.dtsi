@@ -12,7 +12,9 @@
 
 / {
 	aliases {
+#if !defined(CONFIG_MACH_SUNIV)
 		mmc1 = &mmc2;
+#endif
 	};
 
 	binman: binman {
