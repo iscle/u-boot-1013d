@@ -12,6 +12,7 @@ extra-y	:=
 endif
 endif
 
+obj-$(CONFIG_ARCH_SUNXI) += sunxi/
 obj-$(CONFIG_ARMADA100) += armada100/
 obj-$(CONFIG_MX25) += mx25/
 obj-$(CONFIG_MX27) += mx27/
