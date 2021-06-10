@@ -55,7 +55,9 @@ uint sunxi_get_sram_id(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-#ifdef CONFIG_MACH_SUN4I
+#if defined CONFIG_MACH_SUNIV
+	puts("CPU:   Allwinner F1C100s (SUNIV)\n");
+#elif defined CONFIG_MACH_SUN4I
 	puts("CPU:   Allwinner A10 (SUN4I)\n");
 #elif defined CONFIG_MACH_SUN5I
 	u32 val = readl(SUNXI_SID_BASE + 0x08);
