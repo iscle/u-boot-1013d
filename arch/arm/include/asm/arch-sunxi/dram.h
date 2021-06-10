@@ -15,7 +15,9 @@
 #include <linux/types.h>
 
 /* dram regs definition */
-#if defined(CONFIG_MACH_SUN6I)
+#if defined(CONFIG_MACH_SUNIV)
+#include <asm/arch/dram_suniv.h>
+#elif defined(CONFIG_MACH_SUN6I)
 #include <asm/arch/dram_sun6i.h>
 #elif defined(CONFIG_MACH_SUN8I_A23)
 #include <asm/arch/dram_sun8i_a23.h>

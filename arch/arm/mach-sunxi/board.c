@@ -78,14 +78,25 @@ static int gpio_init(void)
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(22), SUNXI_GPIO_INPUT);
 	sunxi_gpio_set_cfgpin(SUNXI_GPB(23), SUNXI_GPIO_INPUT);
 #endif
-#if defined(CONFIG_MACH_SUN8I) && !defined(CONFIG_MACH_SUN8I_R40)
+#if (defined(CONFIG_MACH_SUN8I) && !defined(CONFIG_MACH_SUN8I_R40)) || \
+	defined(CONFIG_MACH_SUNIV)
 	sunxi_gpio_set_cfgpin(SUNXI_GPF(2), SUN8I_GPF_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPF(4), SUN8I_GPF_UART0);
 #else
 	sunxi_gpio_set_cfgpin(SUNXI_GPF(2), SUNXI_GPF_UART0);
 	sunxi_gpio_set_cfgpin(SUNXI_GPF(4), SUNXI_GPF_UART0);
 #endif
-	sunxi_gpio_set_pull(SUNXI_GPF(4), 1);
+	sunxi_gpio_set_pull(SUNXI_GPF(4), SUNXI_GPIO_PULL_UP);
+#elif CONFIG_CONS_INDEX == 1 && defined(CONFIG_MACH_SUNIV)
+#if 0
+	sunxi_gpio_set_cfgpin(SUNXI_GPE(0), SUNIV_GPE_UART0);
+	sunxi_gpio_set_cfgpin(SUNXI_GPE(1), SUNIV_GPE_UART0);
+	sunxi_gpio_set_pull(SUNXI_GPE(1), SUNXI_GPIO_PULL_UP);
+#else
+	sunxi_gpio_set_cfgpin(SUNXI_GPE(0), SUNXI_GPIO_DISABLE);
+	sunxi_gpio_set_cfgpin(SUNXI_GPE(1), SUNXI_GPIO_DISABLE);
+	sunxi_gpio_set_pull(SUNXI_GPE(1), SUNXI_GPIO_PULL_DISABLE);
+#endif
 #elif CONFIG_CONS_INDEX == 1 && (defined(CONFIG_MACH_SUN4I) || \
 				 defined(CONFIG_MACH_SUN7I) || \
 				 defined(CONFIG_MACH_SUN8I_R40))
@@ -211,7 +222,7 @@ void s_init(void)
 	/* No H3 BSP, boot0 seems to not modify SUNXI_SRAMC_BASE + 0x44 */
 #endif
 
-#if !defined(CONFIG_ARM_CORTEX_CPU_IS_UP) && !defined(CONFIG_ARM64)
+#if !defined(CONFIG_ARM_CORTEX_CPU_IS_UP) && !defined(CONFIG_ARM64) && !defined(CONFIG_MACH_SUNIV)
 	/* Enable SMP mode for CPU0, by setting bit 6 of Auxiliary Ctl reg */
 	asm volatile(
 		"mrc p15, 0, r0, c1, c0, 1\n"
@@ -320,10 +331,31 @@ unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc,
 	return sector;
 }
 
+#if defined(CONFIG_MACH_SUNIV)
+/*
+ * suniv BROM do not pass the boot media type to SPL, so we try with the
+ * boot sequence in BROM: mmc0->spinor->fail.
+ */
+void board_boot_order(u32 *spl_boot_list)
+{
+	/*
+	 * See the comments above in sunxi_get_boot_device() for infomation
+	 * about FEL boot.
+	 */
+	if (!is_boot0_magic(SPL_ADDR + 4)) {
+		spl_boot_list[0] = BOOT_DEVICE_BOARD;
+		return;
+	}
+
+	spl_boot_list[0] = BOOT_DEVICE_MMC1;
+	spl_boot_list[1] = BOOT_DEVICE_SPI;
+}
+#else
 u32 spl_boot_device(void)
 {
 	return sunxi_get_boot_device();
 }
+#endif
 
 void board_init_f(ulong dummy)
 {
@@ -369,7 +401,7 @@ void reset_cpu(ulong addr)
 #endif
 }
 
-#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && !defined(CONFIG_ARM64)
+#if !CONFIG_IS_ENABLED(SYS_DCACHE_OFF) && !defined(CONFIG_ARM64) && !defined(CONFIG_CPU_ARM926EJS)
 void enable_caches(void)
 {
 	/* Enable D-cache. I-cache is already enabled in start.S */

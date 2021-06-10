@@ -39,6 +39,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* Forward declarations of some reused functions */
+static int sun4i_spi_set_speed(struct udevice *dev, uint speed);
+static int sun4i_spi_set_mode(struct udevice *dev, uint mode);
+
 /* sun4i spi registers */
 #define SUN4I_RXDATA_REG		0x00
 #define SUN4I_TXDATA_REG		0x04
@@ -251,6 +255,8 @@ static int sun4i_spi_parse_pins(struct udevice *dev)
 
 			if (IS_ENABLED(CONFIG_MACH_SUN50I))
 				sunxi_gpio_set_cfgpin(pin, SUN50I_GPC_SPI0);
+			else if (IS_ENABLED(CONFIG_MACH_SUNIV))
+				sunxi_gpio_set_cfgpin(pin, SUNIV_GPC_SPI0);
 			else
 				sunxi_gpio_set_cfgpin(pin, SUNXI_GPC_SPI0);
 			sunxi_gpio_set_drv(pin, drive);
@@ -304,7 +310,8 @@ err_ahb:
 
 static int sun4i_spi_claim_bus(struct udevice *dev)
 {
-	struct sun4i_spi_priv *priv = dev_get_priv(dev->parent);
+	struct udevice *bus = dev->parent;
+	struct sun4i_spi_priv *priv = dev_get_priv(bus);
 	int ret;
 
 	ret = sun4i_spi_set_clock(dev->parent, true);
@@ -320,6 +327,9 @@ static int sun4i_spi_claim_bus(struct udevice *dev)
 
 	setbits_le32(SPI_REG(priv, SPI_TCR), SPI_BIT(priv, SPI_TCR_CS_MANUAL) |
 		     SPI_BIT(priv, SPI_TCR_CS_ACTIVE_LOW));
+
+	sun4i_spi_set_speed(bus, priv->freq);
+	sun4i_spi_set_mode(bus, priv->mode);
 
 	return 0;
 }
