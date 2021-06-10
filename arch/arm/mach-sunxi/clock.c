@@ -42,6 +42,20 @@ int clock_twi_onoff(int port, int state)
 	struct sunxi_ccm_reg *const ccm =
 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
 
+#if defined(CONFIG_MACH_SUNIV)
+	/* set the apb clock gate and reset for twi */
+	if (state) {
+		setbits_le32(&ccm->apb1_gate,
+			     CLK_GATE_OPEN << (APB1_GATE_TWI_SHIFT + port));
+		setbits_le32(&ccm->apb1_reset_cfg,
+			     1 << (APB1_RESET_TWI_SHIFT + port));
+	} else {
+		clrbits_le32(&ccm->apb1_reset_cfg,
+			     1 << (APB1_RESET_TWI_SHIFT + port));
+		clrbits_le32(&ccm->apb1_gate,
+			     CLK_GATE_OPEN << (APB1_GATE_TWI_SHIFT + port));
+	}
+#else
 	if (port == 5) {
 		if (state)
 			prcm_apb0_enable(
@@ -64,6 +78,7 @@ int clock_twi_onoff(int port, int state)
 		clrbits_le32(&ccm->apb2_gate,
 			     CLK_GATE_OPEN << (APB2_GATE_TWI_SHIFT + port));
 	}
+#endif
 
 	return 0;
 }
